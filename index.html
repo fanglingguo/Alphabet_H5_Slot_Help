@@ -188,11 +188,18 @@ select{width:100%;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1
         <div><label class="lbl">賠率數字色</label><input type="color" id="payValColor" value="#ffea5a"></div>
       </div>
       <div class="dl-hr"></div>
+      <div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.06em">規則數字 { }</div>
+      <div class="g2">
+        <div><label class="lbl">{ } 數字顏色</label><input type="color" id="numColor" value="#f5c842"></div>
+        <div style="display:flex;align-items:flex-end;padding-bottom:2px;font-size:10px;color:var(--muted);line-height:1.5;">
+          大括號內的數字<br>統一套用此顏色
+        </div>
+      </div>
+      <div class="dl-hr"></div>
       <div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.06em">圖片尺寸</div>
-      <div class="g4">
+      <div class="g3">
         <div><label class="lbl">行內符號(px)</label><input type="text" id="inlineSize" value="32"></div>
         <div><label class="lbl">Paytable(px)</label><input type="text" id="ptSymSize" value="100"></div>
-        <div><label class="lbl">{ } 數字顏色</label><input type="color" id="numColor" value="#f5c842"></div>
         <div><label class="lbl">頁面寬度(px)</label><input type="text" id="maxWidth" value="900"></div>
       </div>
     </div>
@@ -740,8 +747,9 @@ function ri(t){
     const u=tag.trim().toUpperCase();
     return `<span class="sym-slot" data-t="${u}"></span>`;
   });
-  // { NUMBER } 或 ｛ NUMBER ｝ → 只顯示數字，顏色由 numColor 控制
-  t=t.replace(/[{｛]\s*(\d+[\d.,]*)\s*[}｝]/g,(_,n)=>`<span class="num">${n}</span>`);
+  // { 數字 } 或 ｛ 數字 ｝ → 只顯示數字，移除大括號，套用 numColor
+  t=t.replace(/\{\s*(\d+(?:[.,]\d+)?)\s*\}/g, (_,n)=>`<span class="num">${n}</span>`);
+  t=t.replace(/｛\s*(\d+(?:[.,]\d+)?)\s*｝/g,  (_,n)=>`<span class="num">${n}</span>`);
   // standalone keywords
   t=t.replace(/\bGRAND\b(?![^<]*class)/g,'<span class="grand">GRAND</span>');
   t=t.replace(/\bMAJOR\b(?![^<]*class)/g,'<span class="major">MAJOR</span>');
