@@ -192,7 +192,7 @@ select{width:100%;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1
       <div class="g4">
         <div><label class="lbl">行內符號(px)</label><input type="text" id="inlineSize" value="32"></div>
         <div><label class="lbl">Paytable(px)</label><input type="text" id="ptSymSize" value="100"></div>
-        <div><label class="lbl">數值高亮色</label><input type="color" id="numColor" value="#f5c842"></div>
+        <div><label class="lbl">{ } 數字顏色</label><input type="color" id="numColor" value="#f5c842"></div>
         <div><label class="lbl">頁面寬度(px)</label><input type="text" id="maxWidth" value="900"></div>
       </div>
     </div>
@@ -740,8 +740,8 @@ function ri(t){
     const u=tag.trim().toUpperCase();
     return `<span class="sym-slot" data-t="${u}"></span>`;
   });
-  // { NUMBER } → gold
-  t=t.replace(/\{\s*(\d+)\s*\}/g,(_,n)=>`<span class="num">${n}</span>`);
+  // { NUMBER } 或 ｛ NUMBER ｝ → 只顯示數字，顏色由 numColor 控制
+  t=t.replace(/[{｛]\s*(\d+[\d.,]*)\s*[}｝]/g,(_,n)=>`<span class="num">${n}</span>`);
   // standalone keywords
   t=t.replace(/\bGRAND\b(?![^<]*class)/g,'<span class="grand">GRAND</span>');
   t=t.replace(/\bMAJOR\b(?![^<]*class)/g,'<span class="major">MAJOR</span>');
