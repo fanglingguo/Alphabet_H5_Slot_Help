@@ -135,7 +135,7 @@ select{width:100%;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1
   <div class="p-section">
     <div class="card-hd">📋 STEP 1 — 規則狀態</div>
     <div class="card-bd">
-      <div class="info-ok">
+      <div class="info-ok" id="step1Info">
         ✅ 規則已依 D欄 標題/規則 結構載入<br>
         🟡 <span style="color:#c080ff;font-weight:700">TITLE_PIC_</span> = 標題下方大圖（非文件必要）<br>
         📦 PAYTABLE 使用原始 HTML 框框+賠率架構
@@ -401,7 +401,8 @@ async function importSheet(){
     rebuildTags();
 
     setImportSt('ok', `✅ 匯入成功！${newSections.length} 筆規則，${symTags.length} 個符號標籤`);
-    document.getElementById('step1Info').innerHTML =
+    const step1 = document.getElementById('step1Info');
+    if(step1) step1.innerHTML =
       '✅ 規則已從 Google Sheet 匯入更新<br>' +
       '<span style="color:#c080ff;font-weight:700">TITLE_PIC_</span> = 標題下方大圖（非文件必要）<br>' +
       '📦 PAYTABLE 使用原始 HTML 框框+賠率架構';
