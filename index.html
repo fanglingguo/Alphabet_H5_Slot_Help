@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Help Page Generator</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0d0d1a;--panel:#151528;
+  --border:rgba(255,255,255,.08);
+  --gold:#f5c842;--accent:#6c63ff;
+  --text:#c8c8e0;--muted:#666680;
+}
+body{background:var(--bg);color:var(--text);font-family:Arial,sans-serif;min-height:100vh;overflow:hidden;}
+
+.topbar{background:linear-gradient(90deg,#0d0d1a,#1a1040,#0d0d1a);border-bottom:1px solid rgba(108,99,255,.3);padding:12px 24px;display:flex;align-items:center;gap:12px;height:48px;}
+.logo{font-size:15px;font-weight:900;color:var(--gold);}
+.sub{font-size:12px;color:var(--muted);}
+
+.app{display:grid;grid-template-columns:460px 1fr;height:calc(100vh - 48px);overflow:hidden;}
+
+/* PANEL */
+.panel{background:var(--panel);border-right:1px solid var(--border);height:100%;display:flex;flex-direction:column;overflow-y:auto;}
+.p-section{flex-shrink:0;border-bottom:1px solid var(--border);}
+.p-section.grow{flex:1 1 0;min-height:280px;display:flex;flex-direction:column;}
+.card-hd{background:rgba(108,99,255,.12);border-bottom:1px solid var(--border);padding:8px 14px;font-size:11px;font-weight:700;letter-spacing:.1em;color:#9090c0;text-transform:uppercase;flex-shrink:0;}
+.card-bd{padding:12px;display:flex;flex-direction:column;gap:8px;}
+.scroll-inner{flex:1 1 0;min-height:0;overflow-y:auto;padding:8px 12px;display:flex;flex-direction:column;gap:4px;}
+.sec-footer{flex-shrink:0;padding:8px 12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px;}
+
+/* INPUTS */
+label.lbl{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.04em;display:block;margin-bottom:3px;}
+input[type=text]{width:100%;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);border-radius:5px;color:var(--text);font-family:Arial,sans-serif;font-size:12px;padding:6px 9px;outline:none;transition:border-color .2s;}
+input[type=text]:focus{border-color:rgba(108,99,255,.6);}
+input[type=color]{width:100%;height:32px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:2px 4px;cursor:pointer;}
+select{width:100%;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);border-radius:5px;color:var(--text);font-family:Arial,sans-serif;font-size:12px;padding:5px 8px;outline:none;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
+.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;}
+
+/* BUTTONS */
+.btn{border:none;border-radius:6px;padding:7px 12px;font-family:Arial,sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.bp{background:linear-gradient(135deg,#6c63ff,#9060ff);color:#fff;}
+.bp:hover{transform:translateY(-1px);}
+.bgold{background:linear-gradient(135deg,#c8a020,#f5c842);color:#1a0a00;}
+.bgold:hover{transform:translateY(-1px);}
+.bgh{background:transparent;border:1px solid rgba(108,99,255,.4);color:#9090c0;}
+.bgh:hover{border-color:rgba(108,99,255,.7);color:#fff;}
+.bfull{width:100%;justify-content:center;padding:10px;font-size:13px;border-radius:8px;}
+
+/* IMAGE MAP */
+.map-hd{display:grid;grid-template-columns:140px 1fr 72px 26px;gap:4px;align-items:center;font-size:10px;color:var(--muted);font-weight:700;padding:0 0 5px;border-bottom:1px solid var(--border);margin-bottom:3px;}
+.map-row{display:grid;grid-template-columns:140px 1fr 72px 26px;gap:4px;align-items:center;padding:2px 0;}
+.pic-hd{display:grid;grid-template-columns:140px 1fr 52px 72px 26px;gap:4px;align-items:center;font-size:10px;color:var(--muted);font-weight:700;padding:0 0 5px;border-bottom:1px solid var(--border);margin-bottom:3px;}
+.pic-row{display:grid;grid-template-columns:140px 1fr 52px 72px 26px;gap:4px;align-items:center;padding:2px 0;}
+.tag-lbl{font-size:11px;font-weight:700;border-radius:4px;padding:4px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tag-lbl.sym{color:var(--gold);background:rgba(245,200,66,.1);border:1px solid rgba(245,200,66,.25);}
+.tag-lbl.pic{color:#c080ff;background:rgba(192,128,255,.1);border:1px solid rgba(192,128,255,.3);}
+.group-hd{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;padding:8px 0 3px;border-bottom:1px solid var(--border);margin-bottom:2px;}
+.drive-cell{height:36px;border-radius:4px;border:1px solid rgba(68,238,136,.3);background:rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.drive-cell img{width:100%;height:100%;object-fit:contain;}
+.drive-cell.no-img{border-color:rgba(255,255,255,.08);}
+.drive-cell .ph{font-size:9px;color:var(--muted);text-align:center;padding:2px;}
+.upload-label{width:72px;height:36px;border-radius:4px;border:1px solid rgba(108,99,255,.35);background:rgba(108,99,255,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;position:relative;transition:border-color .2s;flex-shrink:0;}
+.upload-label:hover{border-color:rgba(108,99,255,.7);}
+.upload-label img{width:100%;height:100%;object-fit:contain;display:block;}
+.upload-label .ph{font-size:9px;color:#8080c0;text-align:center;line-height:1.3;pointer-events:none;}
+.upload-label input[type=file]{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;}
+.upload-label.has{border-color:rgba(68,238,136,.5);}
+.x-btn{width:26px;height:26px;background:rgba(255,60,60,.1);border:1px solid rgba(255,60,60,.2);border-radius:4px;color:#ff6060;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.x-btn:hover{background:rgba(255,60,60,.25);}
+.size-inp{width:50px !important;font-size:11px !important;padding:3px 4px !important;text-align:center;}
+.add-row{display:grid;grid-template-columns:1fr auto;gap:6px;}
+.info-ok{background:rgba(68,238,136,.06);border:1px solid rgba(68,238,136,.2);border-radius:5px;padding:7px 10px;font-size:11px;color:#60c878;line-height:1.6;}
+.dl-hr{height:1px;background:var(--border);margin:3px 0;}
+.action-bar{flex-shrink:0;padding:12px;border-top:1px solid var(--border);background:rgba(0,0,0,.2);display:flex;flex-direction:column;gap:7px;}
+
+/* PREVIEW */
+.preview-area{display:flex;flex-direction:column;height:100%;overflow:hidden;}
+.p-bar{background:rgba(0,0,0,.35);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.p-title{font-size:11px;color:var(--muted);letter-spacing:.08em;font-weight:700;text-transform:uppercase;flex:1;}
+.p-wrap{flex:1;overflow:auto;background:#080810;}
+#pFrame{width:100%;min-height:100%;border:none;display:block;}
+.sbar{background:rgba(0,0,0,.4);border-top:1px solid var(--border);padding:6px 16px;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.sdot{width:6px;height:6px;border-radius:50%;background:#44ee88;flex-shrink:0;}
+
+.import-hint{background:rgba(108,99,255,.1);border:1px solid rgba(108,99,255,.25);border-radius:6px;padding:8px 10px;font-size:11px;color:#a0a0d0;line-height:1.7;}
+.import-hint strong{color:var(--text);}
+.import-row{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;}
+.btn-import{background:linear-gradient(135deg,#c8a020,#f5c842);color:#1a0a00;border:none;border-radius:6px;padding:8px 14px;font-family:Arial,sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;transition:all .18s;}
+.btn-import:hover{transform:translateY(-1px);}
+.btn-import:disabled{opacity:.4;cursor:default;pointer-events:none;}
+.import-st{font-size:12px;padding:6px 0;line-height:1.5;min-height:0;}
+.import-st.loading{color:#9090c0;}
+.import-st.ok{color:#44ee88;}
+.import-st.err{color:#ff8080;}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.2);border-top-color:#9090c0;border-radius:50%;animation:sp .7s linear infinite;vertical-align:middle;margin-right:4px;}
+@keyframes sp{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo">🎰 HELP PAGE GENERATOR</div>
+  <div class="sub">符號圖 · TITLE_PIC_ 大圖 · PAYTABLE 框框架構</div>
+</div>
+
+<div class="app">
+<div class="panel">
+
+  <!-- 檔案匯入 -->
+  <div class="p-section">
+    <div class="card-hd">📁 檔案匯入</div>
+    <div class="card-bd">
+      <div style="font-size:11px;font-weight:700;color:var(--text);letter-spacing:.04em;margin-bottom:2px;">
+        HELP 文件（GOOGLE SHEETS）
+      </div>
+      <div class="import-hint">
+        <span>ℹ️</span>
+        試算表須設為「<strong>知道連結的人可以檢視</strong>」<br>
+        <span style="color:var(--muted);font-size:10px;">（共用 → 一般存取權限 → 知道連結的任何人）</span>
+      </div>
+      <div class="import-row">
+        <input type="text" id="sheetUrl"
+          placeholder="https://docs.google.com/spreadsheets/d/1nv...">
+        <button class="btn-import" id="importBtn" onclick="importSheet()">
+          👆 匯入
+        </button>
+      </div>
+      <div class="import-st" id="importSt"></div>
+    </div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="p-section">
+    <div class="card-hd">📋 STEP 1 — 規則狀態</div>
+    <div class="card-bd">
+      <div class="info-ok">
+        ✅ 規則已依 D欄 標題/規則 結構載入<br>
+        🟡 <span style="color:#c080ff;font-weight:700">TITLE_PIC_</span> = 標題下方大圖（非文件必要）<br>
+        📦 PAYTABLE 使用原始 HTML 框框+賠率架構
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="p-section grow">
+    <div class="card-hd">🖼️ STEP 2 — 所有圖片對應（可捲動）</div>
+    <div class="scroll-inner" id="mapContainer"></div>
+    <div class="sec-footer">
+      <label class="lbl">手動新增行內符號標籤</label>
+      <div class="add-row">
+        <input type="text" id="addTagIn" placeholder="例如: SCATTER">
+        <button class="btn bgh" style="font-size:11px;padding:5px 10px" onclick="addTag()">＋ 新增</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="p-section">
+    <div class="card-hd">🎨 STEP 3 — 統一樣式設定</div>
+    <div class="card-bd">
+      <div class="g2">
+        <div><label class="lbl">頁面背景色</label><input type="color" id="bgColor" value="#0f0a2e"></div>
+        <div><label class="lbl">分隔線顏色</label><input type="color" id="borderColor" value="#e8a020"></div>
+      </div>
+      <div class="dl-hr"></div>
+      <div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.06em">標題</div>
+      <div class="g3">
+        <div><label class="lbl">顏色</label><input type="color" id="titleColor" value="#f5c842"></div>
+        <div><label class="lbl">大小(px)</label><input type="text" id="titleSize" value="26"></div>
+        <div><label class="lbl">對齊</label>
+          <select id="titleAlign"><option value="center">置中</option><option value="left">靠左</option></select>
+        </div>
+      </div>
+      <div class="dl-hr"></div>
+      <div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.06em">規則條列</div>
+      <div class="g3">
+        <div><label class="lbl">文字顏色</label><input type="color" id="ruleColor" value="#e8e8f0"></div>
+        <div><label class="lbl">大小(px)</label><input type="text" id="ruleSize" value="14"></div>
+        <div><label class="lbl">■ 顏色</label><input type="color" id="bulletColor" value="#f5c842"></div>
+      </div>
+      <div class="dl-hr"></div>
+      <div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.06em">PAYTABLE 框框</div>
+      <div class="g3">
+        <div><label class="lbl">框框顏色</label><input type="color" id="payboxBorder" value="#ffd453"></div>
+        <div><label class="lbl">框框背景</label><input type="color" id="payboxBg" value="#0d0830"></div>
+        <div><label class="lbl">賠率數字色</label><input type="color" id="payValColor" value="#ffea5a"></div>
+      </div>
+      <div class="dl-hr"></div>
+      <div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.06em">圖片尺寸</div>
+      <div class="g4">
+        <div><label class="lbl">行內符號(px)</label><input type="text" id="inlineSize" value="32"></div>
+        <div><label class="lbl">Paytable(px)</label><input type="text" id="ptSymSize" value="100"></div>
+        <div><label class="lbl">數值高亮色</label><input type="color" id="numColor" value="#f5c842"></div>
+        <div><label class="lbl">頁面寬度(px)</label><input type="text" id="maxWidth" value="900"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="action-bar">
+    <button class="btn bgold bfull" onclick="generate()">⚡ 產生 Help 頁面</button>
+    <button class="btn bp bfull" id="dlBtn" onclick="dlHTML()" style="display:none">💾 下載 Help 頁面 HTML</button>
+  </div>
+</div>
+
+<!-- RIGHT PREVIEW -->
+<div class="preview-area">
+  <div class="p-bar">
+    <span class="p-title">預覽</span>
+    <button class="btn bgh" style="font-size:11px;padding:5px 10px" onclick="newTab()">↗ 新頁籤開啟</button>
+  </div>
+  <div class="p-wrap"><iframe id="pFrame" sandbox="allow-same-origin allow-scripts"></iframe></div>
+  <div class="sbar"><div class="sdot"></div><span id="sTxt">等待產生...</span></div>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+//  DRIVE FILE IDs
+// ═══════════════════════════════════════
+const DRIVE={
+  WW2_SYMBOL:"1NGHWzBBJHuk1ZmQTok1ZqnauiFNIwNCp",
+  WW2_SMALL:"1L6bKoD5UlXXlvfbxmeiZdzanD6n90x10",
+  WW_SYMBOL:"13icEYlz9HkxZ1Yxmn0FToUJyoOmHmCur",
+  WW_SMALL:"10QGfWT_sj2nXrfI4SWCb57Q6QUhWwlL2",
+  WINMULTIPLIERUP:"1GEa9JYwAid6wlyOTkYQgHElHBp6TTF5Y",
+  WINMULTIPLIER:"1ipD9hvIE54aqJDloLK7g_cpIhoWA62Aq",
+  OP_COIN:"1aBYGLTvI0ivznuI5P2Sa4uzfD0GsJJkD",
+  MINOR_TXT:"18j3ia2f94a2Fosf2ID71-cP6CCdBXETf",
+  MINI_TXT:"1bcTubf4RB9LT9V6-2cKIzPPixOVEv5Rx",
+  MAXIMUMWAYS:"1UgQrVxbQus7cRYjrqbobJzEAzJvnpt6f",
+  MAJOR_TXT:"1t8Rof_S-z39BMGS7lVjedqcf01Ftyz0G",
+  M8_SYMBOL:"1Mz18zFEjwU6j8aSE4F_0l5c2MTgmHPWY",
+  M7_SYMBOL:"1cT4Z1uq4dGgpiwUJE3bnIRS-oUGwvocd",
+  M6_SYMBOL:"1-PeRbBp3ds-9-cAtDGAa7MxXppy7PtWw",
+  M5_SYMBOL:"1ZmhEKkXuItS9g65JDKVDEMlyh25atWEp",
+  M4_SYMBOL:"1VM8bPb8zhBYg0GCcxIcxdgWDHtBzruKl",
+  M3_SYMBOL:"1X_-Fv58iJsJlaZySdu2Y7Tg_9acUq97_",
+  M2_SYMBOL:"1KQRj_DefsyUsf_dcB8AupZz7dR3ZWnpk",
+  M1_SYMBOL:"1icNd0tlw4R7PqWnnSuRXru1FKz9q7HPI",
+  GRAND_TXT:"1QfqajbqBp4XYrLRh9-RDpEewK6VeKv-h",
+  GOLDENSYMBOL:"1VYIe5S2v4_rpXZpgshCsJZx-VlnxmsKM",
+  GOLDENLUCK_SMALL:"19yBR87tkzcFRp3vGXdMZ3sk9C007IEDl",
+  FEATURESETTING:"1aiizsxiMsaWgFeQCqJbAcdnKq3EHM_Hl",
+  C1_SYMBOL:"1Am9-77CMlAYzEfpwEbvili7kxSMAHMyr",
+  C1_SMALL:"16UtcQDiBQNt5GbQ9rRX3TyOg7b-ldMVU"
+};
+const TAG_DRIVE={
+  "WW2":"WW2_SYMBOL","WW1":"WW_SYMBOL",
+  "GOLDEN SYMBOL":"GOLDENSYMBOL","SCATTER":"C1_SYMBOL",
+  "幣":"OP_COIN","GRAND":"GRAND_TXT","MAJOR":"MAJOR_TXT",
+  "MINOR":"MINOR_TXT","MINI":"MINI_TXT",
+  "M1":"M1_SYMBOL","M2":"M2_SYMBOL","M3":"M3_SYMBOL","M4":"M4_SYMBOL",
+  "M5":"M5_SYMBOL","M6":"M6_SYMBOL","M7":"M7_SYMBOL","M8":"M8_SYMBOL",
+  "N1":"M5_SYMBOL","N2":"M6_SYMBOL","N3":"M7_SYMBOL","N4":"M8_SYMBOL"
+};
+function driveUrl(tag){
+  const k=TAG_DRIVE[tag];
+  return(k&&DRIVE[k])?`https://drive.google.com/uc?export=view&id=${DRIVE[k]}`:null;
+}
+
+// ═══════════════════════════════════════
+//  SECTIONS DATA (D欄 title/rule 結構)
+// ═══════════════════════════════════════
+const SECTIONS=[
+  {type:"title",text:"PAYTABLE"},
+  {type:"rule", text:"ALL WINS ARE FROM THE LEFTMOST TO THE RIGHT ON ADJACENT REELS."},
+  {type:"paytable"},
+  {type:"title",text:"GOLDEN SYMBOL [ GOLDEN SYMBOL ]"},
+  {type:"rule", text:"IF A WINNING COMBINATION CONTAINS A [ GOLDEN SYMBOL ] , THE [ GOLDEN SYMBOL ] WILL BECOME [ WW2 ] OR [ WW1 ] ."},
+  {type:"rule", text:"ONLY APPEARS ON REELS { 3 } AND { 4 } ."},
+  {type:"title",text:"SPECIAL WILD [ WW2 ]"},
+  {type:"rule", text:"SUBSTITUTES FOR ALL SYMBOLS, EXCEPT [ SCATTER ] ."},
+  {type:"rule", text:"[ WW2 ] EXPANDS TO COVER THE ENTIRE REEL."},
+  {type:"rule", text:"IF [ WW2 ] EXPANDS OVER A [ SCATTER ] , THAT POSITION WILL ACT AS BOTH [ WW2 ] AND THE [ SCATTER ] . IF A WINNING COMBINATION CONTAINS THE [ SCATTER ] , IT WILL REMAIN ON THE REELS AND REVERT TO A STANDARD [ SCATTER ] ."},
+  {type:"title",text:"WILD [ WW1 ]"},
+  {type:"rule", text:"SUBSTITUTES FOR ALL SYMBOLS, EXCEPT [ SCATTER ] ."},
+  {type:"title",text:"SCATTER [ SCATTER ]"},
+  {type:"rule", text:"{ 3 } OR MORE [ SCATTER ] TRIGGER FREE GAME FEATURE."},
+  {type:"rule", text:"{ 1 } OR MORE [ SCATTER ] RANDOMLY TRIGGER OP JACKPOT FEATURE."},
+  {type:"title",text:"ELIMINATE REELS FEATURE"},
+  {type:"rule", text:"ALL SYMBOLS IN WINNING COMBINATIONS WILL DISAPPEAR EXCEPT [ GOLDEN SYMBOL ] , AND THE EMPTY POSITIONS WILL BE FILLED BY SYMBOLS FALLING DOWN FROM ABOVE."},
+  {type:"rule", text:"THE FEATURE WILL COMPLETE WHEN THERE ARE NO NEW WINNING COMBINATIONS."},
+  {type:"title",text:"WIN MULTIPLIER FEATURE"},
+  {type:"multtable",text:"X1024 | X2048 | X1 | X2 | X4"},
+  {type:"rule", text:"THERE ARE { 12 } LEVELS AS x1, x2, x4, x8, x16, x32, x64, x128, x256, x512, x1024, x2048, IN BASE GAME."},
+  {type:"rule", text:"EACH CONSECUTIVE ELIMINATION DOUBLES THE MULTIPLIER."},
+  {type:"rule", text:"THE WIN MULTIPLIER STARTS AT x1, UP TO x2048."},
+  {type:"rule", text:"ALL WINS AND PAYS ARE MULTIPLIED BY THE MULTIPLIER."},
+  {type:"title",text:"OP JACKPOT FEATURE"},
+  {type:"rule", text:"OP JACKPOT FEATURE IS TRIGGERED RANDOMLY BY { 1 } OR MORE [ SCATTER ] ON THE REELS."},
+  {type:"rule", text:"DURING OP JACKPOT FEATURE, THERE ARE { 12 } [ 幣 ] WHICH CONSIST OF [ GRAND ] , [ MAJOR ] , [ MINOR ] AND [ MINI ] ."},
+  {type:"rule", text:"SELECT A [ 幣 ] TO REVEAL [ GRAND ] , [ MAJOR ] , [ MINOR ] ,OR [ MINI ] ."},
+  {type:"rule", text:"IF PLAYER GETS { 3 } SAME [ 幣 ] WILL WIN THE OP JACKPOT AND CALCULATE TOTAL WINNINGS."},
+  {type:"rule", text:"[ GRAND ] IS LINKED PROGRESSIVE JACKPOT."},
+  {type:"rule", text:"[ MAJOR ] IS LINKED PROGRESSIVE JACKPOT."},
+  {type:"rule", text:"[ MINOR ] WILL CHANGE IF THE PLAYER SELECTS DIFFERENT BET OPTION."},
+  {type:"rule", text:"[ MINI ] WILL CHANGE IF THE PLAYER SELECTS DIFFERENT BET OPTION."},
+  {type:"rule", text:"THE HIGHER BET, THE HIGHER CHANCES TO TRIGGER OP JACKPOT FEATURE."},
+  {type:"title",text:"FREE GAME FEATURE"},
+  {type:"multtable",text:"X1024 | X2048 | X8 | X16 | X32"},
+  {type:"rule", text:"IN BASE GAME, { 3 } [ SCATTER ] WILL TRIGGER { 10 } FREE SPINS. EACH ADDITIONAL [ SCATTER ] WILL TRIGGER AN EXTRA { 2 } FREE SPINS."},
+  {type:"rule", text:"THERE ARE { 9 } LEVELS AS x8, x16, x32, x64, x128, x256, x512, x1024, x2048, IN FREE GAME."},
+  {type:"rule", text:"IN FREE GAME, { 3 } [ SCATTER ] WILL RETRIGGER { 10 } FREE SPINS. EACH ADDITIONAL [ SCATTER ] WILL RETRIGGER AN EXTRA { 2 } FREE SPINS. THE MAXIMUM NUMBER OF FREE GAME SPINS IS { 50 } ."},
+  {type:"rule", text:"THE BET OPTIONS USED IN THE FREE GAME FEATURE ARE THE SAME AS THE GAME THAT TRIGGERED THE FEATURE."},
+  {type:"rule", text:"FREE GAME FEATURE ENDS WHEN THERE ARE NO MORE REMAINING SPINS."},
+  {type:"rule", text:"ALL WINS FROM THE FREE GAME FEATURE ARE PAID AFTER THE FREE GAME FEATURE ENDS."},
+  {type:"title",text:"MAXIMUM WAYS"},
+  {type:"rule", text:"WINNING COMBINATIONS MUST START FROM THE LEFTMOST REELS AND THE SYMBOLS HAVE TO BE ON CONSECUTIVE REELS."},
+  {type:"rule", text:"ONLY THE HIGHEST WIN IS PAID WHEN THERE IS MORE THAN ONE WINNING COMBINATION WITH A CERTAIN SYMBOL."},
+  {type:"rule", text:"BASE GAME AND FREE GAME FEATURE SETTING = { 3600 } MAXIMUM WAYS."},
+  {type:"rule", text:"3600 MAXIMUM WAYS"},
+  {type:"title",text:"BASE AND FREE GAME FEATURE SETTING"},
+  {type:"title",text:"GAME RULES"},
+  {type:"rule", text:"SELECT THE BET OPTIONS YOU WISH TO PLAY."},
+  {type:"rule", text:"ALL WINS SHOWN IN CREDITS, EXCEPT PROGRESSIVES."},
+  {type:"rule", text:"WINNING COMBINATIONS MUST APPEAR CONSECUTIVELY ON ADJACENT REELS, STARTING FROM THE LEFTMOST REEL, TO BE AWARDED."},
+  {type:"rule", text:"HIGHEST WIN ONLY ON EACH WINNING COMBINATION."},
+  {type:"rule", text:"PROGRESSIVE WINS AND WINS ON DIFFERENT COMBINATIONS ARE ADDED TOGETHER."},
+  {type:"rule", text:"IF THE PLAYER LOSES CONNECTION DURING THE FEATURE GAME, THE SYSTEM WILL CALCULATE THE GAME RESULTS AUTOMATICALLY AND THE WINNING PRIZES WILL BE ADDED INTO THE BALANCE."},
+  {type:"title",text:"MAX WIN"},
+  {type:"rule", text:"THE MAXIMUM WIN POTENTIAL IS CAPPED AT { 10000 } TIMES THE INITIAL STAKE."},
+  {type:"rule", text:"IF THE TOTAL WINNINGS IN EITHER THE BASE GAME OR FREE GAME REACH { 10000 } TIMES THE BET AMOUNT, THE CURRENT SPIN WILL CONCLUDE AND ALL REMAINING FEATURES ARE FORFEITED."},
+  {type:"title",text:"BUY FEATURE"},
+  {type:"rule", text:"BUY FEATURE IS AVAILABLE TO THE PLAYER AT { 75 } TIMES THE TOTAL BET AMOUNT IN THE BASE GAME."},
+  {type:"rule", text:"AFTER PURCHASE, THE GAME STATE WILL BE PRESERVED AND ENTER FREE GAME FEATURE."},
+  {type:"title",text:"GAME INFO"},
+  {type:"rule", text:"MALFUNCTION VOIDS ALL PAYS AND PLAYS."},
+];
+
+// PAYTABLE data [tag, v6, v5, v4, v3]
+const PAYTABLE=[
+  ["M1","2.50","1.50","1.00","0.50"],
+  ["M2","1.50","1.00","0.75","0.40"],
+  ["M3","1.00","0.75","0.50","0.25"],
+  ["M4","1.00","0.75","0.50","0.25"],
+  ["N1","0.50","0.30","0.20","0.10"],
+  ["N2","0.50","0.30","0.20","0.10"],
+  ["N3","0.25","0.15","0.10","0.05"],
+  ["N4","0.25","0.15","0.10","0.05"],
+];
+
+// ═══════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════
+const imgStore={};   // tag → { src, size? }
+let symTags=[];      // inline symbol tags from sections
+let extraSymTags=[]; // manually added
+let picTags=[];      // TITLE_PIC_ entries
+
+
+// ═══════════════════════════════════════
+//  GOOGLE SHEET IMPORT
+// ═══════════════════════════════════════
+async function importSheet(){
+  const url = document.getElementById('sheetUrl').value.trim();
+  if(!url){ setImportSt('err','請輸入 Google Sheet URL'); return; }
+
+  const idM  = url.match(/\/d\/([a-zA-Z0-9_\-]+)/);
+  const gidM = url.match(/[#&?]gid=(\d+)/);
+  if(!idM){ setImportSt('err','無法解析連結格式，請貼上完整的 Google Sheets URL'); return; }
+
+  const sid   = idM[1];
+  const gid   = gidM ? gidM[1] : '0';
+  const tqUrl = `https://docs.google.com/spreadsheets/d/${sid}/gviz/tq?tqx=out:json&gid=${gid}`;
+
+  document.getElementById('importBtn').disabled = true;
+  setImportSt('loading','讀取中...');
+
+  try {
+    const res = await fetch(tqUrl);
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const raw = await res.text();
+    const jsonStr = raw.replace(/^[^(]+\(/, '').replace(/\);\s*$/, '');
+    const data = JSON.parse(jsonStr);
+    if(!data.table||!data.table.rows) throw new Error('試算表資料為空');
+
+    // Parse: D欄(index 3)=type, G欄(index 6)=text
+    const newSections = [];
+    for(const row of data.table.rows){
+      if(!row||!row.c) continue;
+      const cells = row.c.map(c=>(c&&c.v!=null)?String(c.v).trim():'');
+      const colD = cells[3]||'';
+      const colG = cells[6]||'';
+      if(!colG) continue;
+      if(colD==='標題')       newSections.push({type:'title',    text:colG});
+      else if(colD==='規則')  newSections.push({type:'rule',     text:colG});
+      else if(colD==='賠分表')newSections.push({type:'paytable'});
+      else if(colD==='倍率表')newSections.push({type:'multtable',text:colG});
+    }
+
+    if(newSections.length===0)
+      throw new Error('未找到規則資料，請確認 D 欄格式（標題/規則）');
+
+    // Update global SECTIONS
+    SECTIONS.length = 0;
+    newSections.forEach(s=>SECTIONS.push(s));
+
+    // Rebuild tag list & image map
+    rebuildTags();
+
+    setImportSt('ok', `✅ 匯入成功！${newSections.length} 筆規則，${symTags.length} 個符號標籤`);
+    document.getElementById('step1Info').innerHTML =
+      '✅ 規則已從 Google Sheet 匯入更新<br>' +
+      '<span style="color:#c080ff;font-weight:700">TITLE_PIC_</span> = 標題下方大圖（非文件必要）<br>' +
+      '📦 PAYTABLE 使用原始 HTML 框框+賠率架構';
+
+  } catch(e){
+    setImportSt('err', `匯入失敗：${e.message}`);
+  } finally {
+    document.getElementById('importBtn').disabled = false;
+  }
+}
+
+function setImportSt(type, msg){
+  const el = document.getElementById('importSt');
+  el.className = 'import-st ' + type;
+  el.innerHTML = type==='loading'
+    ? '<span class="spin"></span>' + msg
+    : msg;
+}
+
+function rebuildTags(){
+  // collect inline sym tags from SECTIONS
+  const found=new Set();
+  SECTIONS.forEach(s=>{
+    if(s.text){
+      const re=/\[\s*([^\]\n]{1,40}?)\s*\]/g;let m;
+      while((m=re.exec(s.text))!==null){
+        const t=m[1].trim().toUpperCase();
+        if(t&&!/^\d+$/.test(t))found.add(t);
+      }
+    }
+  });
+  // also add paytable symbol tags
+  PAYTABLE.forEach(r=>found.add(r[0].toUpperCase()));
+  symTags=[...found];
+
+  // build TITLE_PIC_ list from all title entries
+  picTags=SECTIONS
+    .filter(s=>s.type==='title')
+    .map(s=>({picTag:'TITLE_PIC_'+cleanKey(s.text), title:s.text}));
+
+  renderMap();
+}
+
+function init(){
+  rebuildTags();
+}
+
+function cleanKey(t){
+  return t.replace(/\[.*?\]/g,'').replace(/[^a-zA-Z0-9]/g,'_')
+    .replace(/_+/g,'_').replace(/^_|_$/g,'').toUpperCase().substring(0,30);
+}
+
+// ═══════════════════════════════════════
+//  RENDER IMAGE MAP
+// ═══════════════════════════════════════
+function renderMap(){
+  const c=document.getElementById('mapContainer');
+  let html='';
+
+  // GROUP 1: Inline Symbols
+  html+=`<div class="group-hd">🔤 行內符號（文字中的 [ ] 標籤）</div>`;
+  html+=`<div class="map-hd"><div>TAG</div><div>Drive（自動）</div><div>手動覆蓋</div><div></div></div>`;
+  [...symTags,...extraSymTags].forEach((tag,i)=>{
+    html+=symRow(tag,'s'+i);
+  });
+
+  html+=`<div style="height:8px"></div>`;
+
+  // GROUP 2: TITLE_PIC_
+  html+=`<div class="group-hd">🖼️ 標題大圖 <span style="color:#c080ff">TITLE_PIC_</span>（標題下方，非文件必要）</div>`;
+  html+=`<div class="pic-hd"><div>TAG</div><div>標題名稱</div><div>大小(px)</div><div>上傳圖片</div><div></div></div>`;
+  picTags.forEach(({picTag,title},i)=>{
+    const fid='tp_'+i+'_'+picTag.replace(/[^a-zA-Z0-9]/g,'_');
+    const entry=imgStore[picTag]||{};
+    const shortTitle=title.replace(/\[.*?\]/g,'').trim().substring(0,26);
+    html+=`<div class="pic-row">
+      <div class="tag-lbl pic" style="font-size:9px" title="${picTag}">${picTag.replace('TITLE_PIC_','PIC_')}</div>
+      <div style="font-size:10px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${title}">${shortTitle}</div>
+      <input type="text" class="size-inp" value="${entry.size||''}" placeholder="px"
+        onchange="setSize('${picTag}',this.value)">
+      <label class="upload-label ${entry.src?'has':''}" for="${fid}">
+        ${entry.src?`<img src="${entry.src}" alt="">`:`<span class="ph">點擊上傳</span>`}
+        <input type="file" id="${fid}" accept="image/*" onchange="onImg(event,'${picTag}')">
+      </label>
+      <button class="x-btn" onclick="rmImg('${picTag}')">✕</button>
+    </div>`;
+  });
+
+  c.innerHTML=html;
+}
+
+function symRow(tag,idx){
+  const fid='f_'+idx+'_'+tag.replace(/[^a-zA-Z0-9]/g,'_');
+  const dUrl=driveUrl(tag);
+  const entry=imgStore[tag]||{};
+  return `<div class="map-row">
+    <div class="tag-lbl sym" title="${tag}">[${tag}]</div>
+    <div class="drive-cell ${dUrl?'':'no-img'}">
+      ${dUrl
+        ?`<img src="${dUrl}" alt="${tag}" loading="lazy"
+            onerror="this.parentElement.innerHTML='<span class=ph>無法載入</span>';this.parentElement.classList.add('no-img');">`
+        :`<span class="ph">無對應</span>`}
+    </div>
+    <label class="upload-label ${entry.src?'has':''}" for="${fid}">
+      ${entry.src?`<img src="${entry.src}" alt="${tag}">`:`<span class="ph">點擊上傳</span>`}
+      <input type="file" id="${fid}" accept="image/*" onchange="onImg(event,'${tag}')">
+    </label>
+    <button class="x-btn" onclick="rmImg('${tag}')">✕</button>
+  </div>`;
+}
+
+function onImg(e,tag){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    if(!imgStore[tag])imgStore[tag]={};
+    imgStore[tag].src=ev.target.result;
+    renderMap();
+  };
+  r.readAsDataURL(f);
+}
+function setSize(tag,val){
+  if(!imgStore[tag])imgStore[tag]={};
+  imgStore[tag].size=parseInt(val)||null;
+}
+function rmImg(tag){ delete imgStore[tag]; renderMap(); }
+function addTag(){
+  const el=document.getElementById('addTagIn');
+  const t=el.value.trim().toUpperCase();
+  if(t&&!symTags.includes(t)&&!extraSymTags.includes(t)){
+    extraSymTags.push(t); renderMap();
+  }
+  el.value='';
+}
+
+// ═══════════════════════════════════════
+//  GENERATE
+// ═══════════════════════════════════════
+function generate(){
+  const cfg={
+    bg:          v('bgColor'),
+    border:      v('borderColor'),
+    titleColor:  v('titleColor'),
+    titleSize:   n('titleSize',26),
+    titleAlign:  document.getElementById('titleAlign').value,
+    ruleColor:   v('ruleColor'),
+    ruleSize:    n('ruleSize',14),
+    bulletColor: v('bulletColor'),
+    payboxBorder:v('payboxBorder'),
+    payboxBg:    v('payboxBg'),
+    payValColor: v('payValColor'),
+    inlineSize:  n('inlineSize',32),
+    ptSymSize:   n('ptSymSize',100),
+    numColor:    v('numColor'),
+    maxWidth:    n('maxWidth',900),
+  };
+
+  // Build final img map
+  const symImgs={}, picImgs={};
+  [...symTags,...extraSymTags].forEach(tag=>{
+    if(imgStore[tag]&&imgStore[tag].src) symImgs[tag]=imgStore[tag].src;
+    else{const u=driveUrl(tag);if(u)symImgs[tag]=u;}
+  });
+  picTags.forEach(({picTag})=>{
+    const e=imgStore[picTag];
+    if(e&&e.src) picImgs[picTag]={src:e.src,size:e.size||null};
+  });
+
+  const html=buildPage(cfg,symImgs,picImgs);
+  document.getElementById('pFrame').srcdoc=html;
+  window._html=html;
+  document.getElementById('dlBtn').style.display='';
+  document.getElementById('sTxt').textContent=`已產生 — 行內符號 ${Object.keys(symImgs).length} 張，標題大圖 ${Object.keys(picImgs).length} 張`;
+}
+function v(id){return document.getElementById(id).value;}
+function n(id,def){return parseInt(document.getElementById(id).value)||def;}
+
+// ═══════════════════════════════════════
+//  BUILD OUTPUT PAGE
+// ═══════════════════════════════════════
+function buildPage(cfg,symImgs,picImgs){
+  const{bg,border,titleColor,titleSize,titleAlign,ruleColor,ruleSize,bulletColor,
+        payboxBorder,payboxBg,payValColor,inlineSize,ptSymSize,numColor,maxWidth}=cfg;
+
+  const symJSON=JSON.stringify(symImgs);
+  const picJSON=JSON.stringify(picImgs);
+
+  // Build sections
+  let body='';
+  let i=0;
+  while(i<SECTIONS.length){
+    const s=SECTIONS[i];
+    if(s.type==='title'){
+      const rules=[];
+      let j=i+1;
+      while(j<SECTIONS.length&&SECTIONS[j].type!=='title'){rules.push(SECTIONS[j]);j++;}
+      body+=renderSec(s.text,rules,cfg);
+      i=j;
+    } else {i++;}
+  }
+
+  return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>HELP</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:${bg};color:${ruleColor};font-family:Arial,sans-serif;font-size:${ruleSize}px;max-width:${maxWidth}px;margin:0 auto;padding:0 0 60px;}
+.div{height:1px;background:linear-gradient(90deg,transparent,${border},transparent);}
+/* ── TITLE ── */
+.ttl{font-family:Arial,sans-serif;font-size:${titleSize}px;font-weight:900;color:${titleColor};text-align:${titleAlign};padding:28px 20px 14px;letter-spacing:.08em;text-transform:uppercase;text-shadow:0 0 20px rgba(245,200,66,.3);}
+.ttl .sym{width:${Math.round(titleSize*1.2)}px;height:${Math.round(titleSize*1.2)}px;vertical-align:middle;}
+/* ── TITLE PIC ── */
+.sec-pic{text-align:center;padding:8px 0 18px;}
+.sec-pic img{object-fit:contain;display:inline-block;max-width:100%;}
+/* ── RULES ── */
+.rules{padding:8px 32px 22px;display:flex;flex-direction:column;gap:12px;}
+.r{font-size:${ruleSize}px;color:${ruleColor};line-height:1.8;font-family:Arial,sans-serif;padding-left:22px;position:relative;}
+.r::before{content:'■';color:${bulletColor};font-size:10px;position:absolute;left:0;top:6px;}
+/* ── INLINE SYMBOLS ── */
+.sym{display:inline-block;width:${inlineSize}px;height:${inlineSize}px;object-fit:contain;vertical-align:middle;margin:0 2px;flex-shrink:0;}
+.sym-slot{display:inline;}
+/* ── NUMBER HIGHLIGHTS ── */
+.num{color:${numColor};font-weight:700;}
+.grand{color:#ff4444;font-weight:700;}
+.major{color:#ff44cc;font-weight:700;}
+.minor{color:#44aaff;font-weight:700;}
+.mini{color:#44ee44;font-weight:700;}
+/* ── PAYTABLE (原始 HTML 架構) ── */
+.pt-wrap{display:flex;justify-content:center;padding:15px;}
+.pt-box{border:3px solid ${payboxBorder};border-radius:15px;padding:20px;max-width:420px;background:${payboxBg};}
+.pt-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px 15px;}
+.pt-item{display:flex;align-items:center;gap:10px;font-size:${ruleSize}px;}
+.pt-sym{width:${ptSymSize}px;height:${ptSymSize}px;object-fit:contain;flex-shrink:0;}
+.pt-sym-ph{width:${ptSymSize}px;height:${ptSymSize}px;background:rgba(255,255,255,.08);border-radius:8px;flex-shrink:0;}
+.pt-vals{display:flex;flex-direction:column;line-height:1.4;}
+.payout-font{color:${payValColor};font-weight:700;}
+/* ── MULT TABLE ── */
+.mult-row{padding:6px 32px 16px;display:flex;flex-wrap:wrap;gap:6px;}
+.mc{background:rgba(0,0,0,.35);border:1px solid rgba(245,200,66,.25);border-radius:6px;padding:4px 10px;font-size:${ruleSize}px;color:${titleColor};font-weight:700;font-family:Arial,sans-serif;}
+</style>
+<script>
+const SYM=${symJSON};
+const PIC=${picJSON};
+document.addEventListener('DOMContentLoaded',()=>{
+  // inline sym-slot → img or remove
+  document.querySelectorAll('.sym-slot[data-t]').forEach(el=>{
+    const t=el.getAttribute('data-t');
+    if(SYM[t]){const i=document.createElement('img');i.src=SYM[t];i.className='sym';i.alt=t;el.replaceWith(i);}
+    else el.replaceWith('');
+  });
+  // paytable sym images
+  document.querySelectorAll('.pt-sym-slot[data-sym]').forEach(el=>{
+    const t=el.getAttribute('data-sym');
+    if(SYM[t]){const i=document.createElement('img');i.src=SYM[t];i.className='pt-sym';i.alt=t;el.replaceWith(i);}
+    else{const d=document.createElement('div');d.className='pt-sym-ph';el.replaceWith(d);}
+  });
+  // title pics
+  document.querySelectorAll('.sec-pic[data-pk]').forEach(el=>{
+    const k=el.getAttribute('data-pk');
+    const d=PIC[k];
+    if(d&&d.src){
+      const style=d.size?'width:'+d.size+'px':'max-width:80%;';
+      el.innerHTML='<img src="'+d.src+'" style="'+style+'">';
+    } else {el.style.display='none';}
+  });
+});
+<\/script>
+</head><body>${body}</body></html>`;
+}
+
+// ═══════════════════════════════════════
+//  RENDER SECTION
+// ═══════════════════════════════════════
+function renderSec(title,rules,cfg){
+  const parts=['<div class="div"></div>'];
+  parts.push(`<div class="ttl">${ri(title)}</div>`);
+
+  // title pic placeholder
+  const pk='TITLE_PIC_'+cleanKey(title);
+  parts.push(`<div class="sec-pic" data-pk="${pk}"></div>`);
+
+  // PAYTABLE section: first rule + box
+  if(title==='PAYTABLE'){
+    const firstRule=rules.find(r=>r.type==='rule');
+    if(firstRule){
+      parts.push('<div class="rules">');
+      parts.push(`<div class="r">${ri(firstRule.text)}</div>`);
+      parts.push('</div>');
+    }
+    parts.push(buildPaytable());
+    return parts.join('\n');
+  }
+
+  // Normal sections
+  let inRules=false;
+  for(const row of rules){
+    if(row.type==='rule'){
+      if(!inRules){parts.push('<div class="rules">');inRules=true;}
+      parts.push(`<div class="r">${ri(row.text)}</div>`);
+    } else if(row.type==='multtable'){
+      if(inRules){parts.push('</div>');inRules=false;}
+      const chips=row.text.split('|').map(v=>`<div class="mc">${v.trim()}</div>`).join('');
+      parts.push(`<div class="mult-row">${chips}</div>`);
+    }
+  }
+  if(inRules)parts.push('</div>');
+  return parts.join('\n');
+}
+
+// ── PAYTABLE HTML (原始 HTML 架構) ──
+function buildPaytable(){
+  const items=PAYTABLE.map(([tag,v6,v5,v4,v3])=>`
+<div class="pt-item">
+  <span class="pt-sym-slot" data-sym="${tag}"></span>
+  <div class="pt-vals">
+    <div>6 - <span class="payout-font">${v6}</span></div>
+    <div>5 - <span class="payout-font">${v5}</span></div>
+    <div>4 - <span class="payout-font">${v4}</span></div>
+    <div>3 - <span class="payout-font">${v3}</span></div>
+  </div>
+</div>`).join('');
+  return `<div class="pt-wrap"><div class="pt-box"><div class="pt-grid">${items}</div></div></div>`;
+}
+
+// ── RENDER INLINE ──
+function ri(t){
+  // [ GRAND/MAJOR/MINOR/MINI ] → colored text
+  t=t.replace(/\[\s*GRAND\s*\]/gi,'<span class="grand">GRAND</span>');
+  t=t.replace(/\[\s*MAJOR\s*\]/gi,'<span class="major">MAJOR</span>');
+  t=t.replace(/\[\s*MINOR\s*\]/gi,'<span class="minor">MINOR</span>');
+  t=t.replace(/\[\s*MINI\s*\]/gi, '<span class="mini">MINI</span>');
+  // other [ TAG ] → sym-slot (replaced at runtime)
+  t=t.replace(/\[\s*([^\]]+?)\s*\]/g,(_,tag)=>{
+    const u=tag.trim().toUpperCase();
+    return `<span class="sym-slot" data-t="${u}"></span>`;
+  });
+  // { NUMBER } → gold
+  t=t.replace(/\{\s*(\d+)\s*\}/g,(_,n)=>`<span class="num">${n}</span>`);
+  // standalone keywords
+  t=t.replace(/\bGRAND\b(?![^<]*class)/g,'<span class="grand">GRAND</span>');
+  t=t.replace(/\bMAJOR\b(?![^<]*class)/g,'<span class="major">MAJOR</span>');
+  t=t.replace(/\bMINOR\b(?![^<]*class)/g,'<span class="minor">MINOR</span>');
+  t=t.replace(/\bMINI\b(?![^<]*class)/g, '<span class="mini">MINI</span>');
+  return t;
+}
+
+function dlHTML(){
+  if(!window._html)return;
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([window._html],{type:'text/html'}));
+  a.download='help_page.html';a.click();
+}
+function newTab(){
+  if(!window._html){alert('請先產生頁面！');return;}
+  window.open(URL.createObjectURL(new Blob([window._html],{type:'text/html'})));
+}
+
+init();
+</script>
+</body>
+</html>
