@@ -365,23 +365,51 @@ async function importSheet(){
   if(!url){ setImportSt('err','請輸入 Google Sheet URL'); return; }
 
   const idM  = url.match(/\/d\/([a-zA-Z0-9_\-]+)/);
-  const gidM = url.match(/[#&?]gid=(\d+)/);
   if(!idM){ setImportSt('err','無法解析連結格式，請貼上完整的 Google Sheets URL'); return; }
 
-  const sid   = idM[1];
-  const gid   = gidM ? gidM[1] : '0';
-  const tqUrl = `https://docs.google.com/spreadsheets/d/${sid}/gviz/tq?tqx=out:json&gid=${gid}`;
+  const sid  = idM[1];
+  // gid 解析：支援 #gid=、?gid=、&gid= 各種格式
+  // 若連結沒有 gid（例如 ?usp=sharing），不帶 gid 參數，讓 gviz 讀預設（第一個可見）分頁
+  const gidM = url.match(/[#&?]gid=(\d+)/);
+  const tqUrl = gidM
+    ? `https://docs.google.com/spreadsheets/d/${sid}/gviz/tq?tqx=out:json&gid=${gidM[1]}`
+    : `https://docs.google.com/spreadsheets/d/${sid}/gviz/tq?tqx=out:json`;
 
   document.getElementById('importBtn').disabled = true;
   setImportSt('loading','讀取中...');
 
   try {
-    const res = await fetch(tqUrl);
-    if(!res.ok) throw new Error(`HTTP ${res.status}`);
-    const raw = await res.text();
-    const jsonStr = raw.replace(/^[^(]+\(/, '').replace(/\);\s*$/, '');
-    const data = JSON.parse(jsonStr);
-    if(!data.table||!data.table.rows) throw new Error('試算表資料為空');
+    // JSONP 方式（唯一可跨域運作，包含 GitHub Pages 等外部網域）
+    const data = await new Promise((resolve, reject) => {
+      const cbName = '__gvizCb_' + Date.now();
+      const script = document.createElement('script');
+      const timer = setTimeout(() => {
+        cleanup();
+        reject(new Error('請求逾時，請確認試算表已設為「知道連結的人可以檢視」'));
+      }, 10000);
+
+      function cleanup(){
+        clearTimeout(timer);
+        delete window[cbName];
+        if(script.parentNode) script.parentNode.removeChild(script);
+      }
+
+      window[cbName] = function(res){
+        cleanup();
+        if(res && res.table) resolve(res);
+        else reject(new Error('試算表回傳資料格式錯誤'));
+      };
+
+      // gviz JSONP：用 responseHandler 取代 out:json
+      const jsonpUrl = tqUrl.replace('tqx=out:json', 'tqx=responseHandler:' + cbName);
+      script.src = jsonpUrl;
+      script.onerror = () => {
+        cleanup();
+        reject(new Error('無法載入試算表，請確認共用設定為「知道連結的人可以檢視」'));
+      };
+      document.head.appendChild(script);
+    });
+    if(!data.table||!data.table.rows) throw new Error('試算表資料為空，請確認分頁正確');
 
     // ── 自動偵測欄位 ──
     // 找「類型欄」：含有「標題」或「規則」的欄
@@ -432,6 +460,7 @@ async function importSheet(){
       else if(colType==='規則')   newSections.push({type:'rule',     text:colText});
       else if(colType==='賠分表') newSections.push({type:'paytable'});
       else if(colType==='倍率表') newSections.push({type:'multtable',text:colText});
+      else if(colType==='表格')   newSections.push({type:'table',    text:colText});
     }
 
     if(newSections.length===0)
@@ -474,10 +503,17 @@ function rebuildTags(){
   const found=new Set();
   SECTIONS.forEach(s=>{
     if(s.text){
+      // 半形 [ TAG ] → inline sym tags
       const re=/\[\s*([^\]\n]{1,40}?)\s*\]/g;let m;
       while((m=re.exec(s.text))!==null){
         const t=m[1].trim().toUpperCase();
         if(t&&!/^\d+$/.test(t))found.add(t);
+      }
+      // 全形 ［TAG(符號)］ or ［TAG］ in table cells → image tags
+      const re2=/［([^\]（）\n]{1,40}?)(?:（符號）)?］/g;let m2;
+      while((m2=re2.exec(s.text))!==null){
+        const t=m2[1].trim().toUpperCase();
+        if(t&&!/^\d+$/.test(t)&&!t.includes('符號')&&!t.includes('字'))found.add(t);
       }
     }
   });
@@ -680,6 +716,16 @@ body{background:${bg};color:${ruleColor};font-family:Arial,sans-serif;font-size:
 .mini{color:#44ee44;font-weight:700;}
 /* ── PAYTABLE (原始 HTML 架構) ── */
 .pt-wrap{display:flex;justify-content:center;padding:15px;}
+/* ── GENERIC TABLE ── */
+.tbl-wrap{margin:6px 24px 24px;overflow-x:auto;}
+.tbl-title{text-align:center;font-family:Arial,sans-serif;font-size:${titleSize}px;font-weight:900;color:${titleColor};padding:14px 0 10px;letter-spacing:.06em;}
+.tbl{width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:${ruleSize}px;}
+.tbl th{background:rgba(0,0,0,.35);color:${titleColor};font-weight:700;padding:10px 14px;border:1px solid ${payboxBorder};text-align:center;letter-spacing:.04em;}
+.tbl td{padding:10px 14px;border:1px solid rgba(255,255,255,.1);color:${ruleColor};text-align:center;vertical-align:middle;line-height:1.5;}
+.tbl tr:nth-child(even) td{background:rgba(255,255,255,.03);}
+.tbl tr:first-child td{background:rgba(0,0,0,.25);}
+.sym-text{font-weight:700;color:${titleColor};}
+.maxi{color:#ff88ff;font-weight:700;}
 .pt-box{border:3px solid ${payboxBorder};border-radius:15px;padding:20px;max-width:420px;background:${payboxBg};}
 .pt-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px 15px;}
 .pt-item{display:flex;align-items:center;gap:10px;font-size:${ruleSize}px;}
@@ -754,6 +800,9 @@ function renderSec(title,rules,cfg){
       if(inRules){parts.push('</div>');inRules=false;}
       const chips=row.text.split('|').map(v=>`<div class="mc">${v.trim()}</div>`).join('');
       parts.push(`<div class="mult-row">${chips}</div>`);
+    } else if(row.type==='table'){
+      if(inRules){parts.push('</div>');inRules=false;}
+      parts.push(buildTable(row.text,cfg));
     }
   }
   if(inRules)parts.push('</div>');
@@ -773,6 +822,96 @@ function buildPaytable(){
   </div>
 </div>`).join('');
   return `<div class="pt-wrap"><div class="pt-box"><div class="pt-grid">${items}</div></div></div>`;
+}
+
+// ── BUILD GENERIC TABLE ──
+// Table text format (from Google Sheet):
+//   Title row (optional, if no ｜ = title)
+//   col1 ｜ col2 ｜ col3
+//   ...
+// Special notation:
+//   ［TAG(符號)］ → sym-slot image
+//   ［TAG(字)］   → colored text span
+//   （空白）      → empty cell
+// Separator ｜ (fullwidth) splits columns
+function buildTable(text, cfg){
+  if(!text||!text.trim()) return '';
+  const lines = text.split('\n').map(l=>l.trim()).filter(l=>l);
+  if(!lines.length) return '';
+
+  // Detect title: first line with no ｜
+  let title='', dataLines=lines;
+  if(lines.length>1 && !lines[0].includes('｜')){
+    title = lines[0];
+    dataLines = lines.slice(1);
+  }
+
+  // Parse header row and data rows
+  const allRows = dataLines.map(l => l.split('｜').map(c=>c.trim()));
+  const colCount = Math.max(...allRows.map(r=>r.length));
+
+  // Render
+  let html = '<div class="tbl-wrap">';
+  if(title) html += `<div class="tbl-title">${riTable(title)}</div>`;
+  html += '<table class="tbl">';
+
+  // First row = header
+  if(allRows.length>0){
+    html += '<thead><tr>';
+    const hrow = allRows[0];
+    for(let i=0;i<colCount;i++){
+      html += `<th>${riTable(hrow[i]||'')}</th>`;
+    }
+    html += '</tr></thead>';
+  }
+
+  // Remaining = body
+  if(allRows.length>1){
+    html += '<tbody>';
+    for(let r=1;r<allRows.length;r++){
+      const row=allRows[r];
+      html += '<tr>';
+      for(let c=0;c<colCount;c++){
+        const cell = row[c]||'';
+        html += `<td>${riTable(cell)}</td>`;
+      }
+      html += '</tr>';
+    }
+    html += '</tbody>';
+  }
+
+  html += '</table></div>';
+  return html;
+}
+
+// ri variant for table cells – handles ［TAG(符號)］, ［TAG(字)］, （空白）
+function riTable(t){
+  if(!t) return '';
+  // （空白） → empty
+  t = t.replace(/（空白）/g, '');
+  // ［TAG(符號)］ → sym-slot image
+  t = t.replace(/［([^\]]+?)（符號）］/g, (_,tag) => {
+    const u = tag.trim().toUpperCase();
+    return `<span class="sym-slot" data-t="${u}"></span>`;
+  });
+  // ［TAG(字)］ → colored text based on known keywords, else plain
+  t = t.replace(/［([^\]]+?)（字）］/g, (_,tag) => {
+    const u = tag.trim().toUpperCase();
+    if(/GRAND/.test(u)) return `<span class="grand">${tag.trim()}</span>`;
+    if(/MAJOR/.test(u)) return `<span class="major">${tag.trim()}</span>`;
+    if(/MAXI/.test(u))  return `<span class="maxi">${tag.trim()}</span>`;
+    if(/MINOR/.test(u)) return `<span class="minor">${tag.trim()}</span>`;
+    if(/MINI/.test(u))  return `<span class="mini">${tag.trim()}</span>`;
+    return `<span class="sym-text">${tag.trim()}</span>`;
+  });
+  // ［TAG］ → sym-slot (no suffix annotation)
+  t = t.replace(/［([^\]（）]+?)］/g, (_,tag) => {
+    const u = tag.trim().toUpperCase();
+    return `<span class="sym-slot" data-t="${u}"></span>`;
+  });
+  // { NUMBER }
+  t = t.replace(/\{\s*(\d+(?:[.,]\d+)?)\s*\}/g, (_,n)=>`<span class="num">${n}</span>`);
+  return t;
 }
 
 // ── RENDER INLINE ──
