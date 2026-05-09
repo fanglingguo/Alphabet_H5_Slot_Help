@@ -383,22 +383,59 @@ async function importSheet(){
     const data = JSON.parse(jsonStr);
     if(!data.table||!data.table.rows) throw new Error('試算表資料為空');
 
-    // Parse: D欄(index 3)=type, G欄(index 6)=text
-    const newSections = [];
-    for(const row of data.table.rows){
+    // ── 自動偵測欄位 ──
+    // 找「類型欄」：含有「標題」或「規則」的欄
+    // 找「內容欄」：類型欄右側，有最多非空英文內容的欄
+    const rows = data.table.rows;
+    let typeCol = -1, textCol = -1;
+
+    // 掃描前20列找 typeCol
+    for(const row of rows.slice(0, 20)){
       if(!row||!row.c) continue;
       const cells = row.c.map(c=>(c&&c.v!=null)?String(c.v).trim():'');
-      const colD = cells[3]||'';
-      const colG = cells[6]||'';
-      if(!colG) continue;
-      if(colD==='標題')       newSections.push({type:'title',    text:colG});
-      else if(colD==='規則')  newSections.push({type:'rule',     text:colG});
-      else if(colD==='賠分表')newSections.push({type:'paytable'});
-      else if(colD==='倍率表')newSections.push({type:'multtable',text:colG});
+      for(let i=0; i<cells.length; i++){
+        if(cells[i]==='標題'||cells[i]==='規則'||cells[i]==='賠分表'||cells[i]==='倍率表'){
+          typeCol = i; break;
+        }
+      }
+      if(typeCol >= 0) break;
+    }
+    if(typeCol < 0) throw new Error('找不到類型欄（標題/規則），請確認試算表有標示類型的欄位');
+
+    // 找 textCol：typeCol 右側，統計哪欄有最多英文內容
+    const colScores = {};
+    for(const row of rows){
+      if(!row||!row.c) continue;
+      const cells = row.c.map(c=>(c&&c.v!=null)?String(c.v).trim():'');
+      const t = cells[typeCol]||'';
+      if(!t) continue;
+      for(let i=typeCol+1; i<cells.length; i++){
+        const v = cells[i];
+        if(v && /[A-Za-z]/.test(v)){
+          colScores[i] = (colScores[i]||0) + 1;
+        }
+      }
+    }
+    // 取分數最高的欄
+    textCol = Object.entries(colScores).sort((a,b)=>b[1]-a[1]).map(e=>+e[0])[0];
+    if(textCol === undefined) throw new Error('找不到英文內容欄，請確認試算表有英文內容');
+
+    // ── 解析規則 ──
+    const newSections = [];
+    for(const row of rows){
+      if(!row||!row.c) continue;
+      const cells = row.c.map(c=>(c&&c.v!=null)?String(c.v).trim():'');
+      const colType = cells[typeCol]||'';
+      const colText = cells[textCol]||'';
+      if(!colType) continue;
+      if(colType==='標題')        newSections.push({type:'title',    text:colText});
+      else if(colType==='規則')   newSections.push({type:'rule',     text:colText});
+      else if(colType==='賠分表') newSections.push({type:'paytable'});
+      else if(colType==='倍率表') newSections.push({type:'multtable',text:colText});
     }
 
     if(newSections.length===0)
-      throw new Error('未找到規則資料，請確認 D 欄格式（標題/規則）');
+      throw new Error('未找到規則資料（類型欄須含有「標題」或「規則」文字）');
 
     // Update global SECTIONS
     SECTIONS.length = 0;
@@ -407,7 +444,10 @@ async function importSheet(){
     // Rebuild tag list & image map
     rebuildTags();
 
-    setImportSt('ok', `✅ 匯入成功！${newSections.length} 筆規則，${symTags.length} 個符號標籤`);
+    const colNames = ['A','B','C','D','E','F','G','H','I','J'];
+    const typeColName = colNames[typeCol]||typeCol;
+    const textColName = colNames[textCol]||textCol;
+    setImportSt('ok', `✅ 匯入成功！偵測類型欄：${typeColName}，內容欄：${textColName}｜共 ${newSections.length} 筆規則，${symTags.length} 個符號標籤`);
     const step1 = document.getElementById('step1Info');
     if(step1) step1.innerHTML =
       '✅ 規則已從 Google Sheet 匯入更新<br>' +
